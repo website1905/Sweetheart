@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A Special Message for You</title>
+    <style>
+        :root {
+            --parchment: #fcf5e5;
+            --wood: #5d4037;
+            --accent: #d81b60;
+            --sparkle: #fff59d;
+        }
+
+        body {
+            background-color: #fce4ec;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            perspective: 1000px;
+            font-family: 'Georgia', serif;
+            overflow-x: hidden; 
+            touch-action: manipulation;
+        }
+
+        /* --- GAME & SLIDER --- */
+        #game-container { position: fixed; inset: 0; background: #fce4ec; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .heart { position: absolute; font-size: 2rem; cursor: pointer; }
+        #slider-popup { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 200; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        .slider-box { background: white; padding: 30px; border-radius: 20px; width: 80%; max-width: 350px; text-align: center; }
+        input[type=range] { width: 100%; margin: 20px 0; accent-color: var(--accent); }
+        #emoji-display { font-size: 3rem; display: block; margin-bottom: 10px; }
+
+        /* --- MY WORLD POPUP --- */
+        #popup { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 300; justify-content: center; align-items: center; flex-direction: column; text-align: center; }
+        .popup-gif { width: 80%; max-width: 250px; border-radius: 20px; border: 3px solid white; }
+        .sparkly-text { font-size: 1.8rem; color: white; text-shadow: 0 0 10px var(--sparkle); animation: glow 1.5s infinite alternate; margin: 15px 0; }
+
+        /* --- ONE-BY-ONE GALLERY --- */
+        #gallery-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #fff;
+            z-index: 400;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .gallery-photo {
+            width: 85vw;
+            max-width: 350px;
+            border-radius: 15px;
+            display: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: popIn 0.4s ease;
+        }
+
+        /* --- SCRATCH SECTION --- */
+        #scratch-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin-top: 20px;
+            display: none;
+        }
+        #scratch-canvas { position: absolute; top: 0; left: 0; z-index: 2; touch-action: none; border-radius: 15px; }
+        .revealed-gif { width: 280px; height: 280px; object-fit: cover; border-radius: 15px; }
+
+        /* --- LOCKER STYLES --- */
+        #locker-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            background: #fff;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 500;
+        }
+        .pin-display { font-size: 1.8rem; letter-spacing: 8px; margin-bottom: 20px; border-bottom: 3px solid var(--accent); width: 120px; text-align: center; height: 40px; color: var(--accent); }
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .numpad button { width: 55px; height: 55px; border-radius: 50%; font-weight: bold; background: #fce4ec; color: var(--accent); border: none; cursor: pointer; }
+
+        /* --- LOVE PNG POPUP --- */
+        #love-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(252, 228, 236, 0.95);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            animation: fadeIn 0.8s ease;
+        }
+        .love-image {
+            width: 90vw;
+            max-width: 450px;
+            filter: drop-shadow(0 10px 20px rgba(216, 27, 96, 0.4));
+            animation: smoothPop 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* --- ORIGINAL SCROLL STYLES --- */
+        .scroll-wrapper { position: relative; display: none; align-items: center; justify-content: center; height: 200px; width: 95vw; max-width: 600px; }
+        .scroll-paper { width: 0px; height: 180px; background-color: var(--parchment); border-top: 2px solid #e0d8c3; border-bottom: 2px solid #e0d8c3; box-shadow: 0 5px 15px rgba(0,0,0,0.1); overflow: hidden; display: flex; align-items: center; justify-content: center; transition: width 1.2s cubic-bezier(0.445, 0.05, 0.55, 0.95); }
+        .scroll-text { white-space: nowrap; font-size: 1.2rem; color: var(--accent); font-weight: bold; opacity: 0; transform: scale(0.8); transition: all 0.6s ease; transition-delay: 0.8s; }
+        .roller { width: 30px; height: 220px; background: linear-gradient(to right, #3e2723, var(--wood), #3e2723); border-radius: 8px; flex-shrink: 0; }
+        .scroll-wrapper.open .scroll-paper { width: 80vw; max-width: 500px; }
+        .scroll-wrapper.open .scroll-text { opacity: 1; transform: scale(1); }
+
+        .controls { margin-top: 40px; display: none; flex-direction: column; gap: 15px; width: 80%; max-width: 300px; }
+        button { padding: 15px 25px; font-size: 1rem; background-color: var(--accent); color: white; border: none; border-radius: 50px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        
+        #hint-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 600; flex-direction: column; align-items: center; justify-content: center; color: white; padding: 20px; text-align: center; }
+
+        @keyframes glow { from { text-shadow: 0 0 10px var(--sparkle), 0 0 20px var(--accent); } to { text-shadow: 0 0 20px var(--sparkle), 0 0 40px var(--accent); } }
+        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes smoothPop { 
+            0% { transform: scale(0.5); opacity: 0; } 
+            100% { transform: scale(1); opacity: 1; } 
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="bgMusic" loop><source src="song.mp3" type="audio/mpeg"></audio>
+
+    <!-- 1. MINI GAME -->
+    <div id="game-container">
+        <h2 style="color: var(--accent);">Catch 5 Hearts to Enter! ❤️</h2>
+        <p id="score-board">Hearts: 0</p>
+    </div>
+
+    <!-- 2. EMOJI SLIDER -->
+    <div id="slider-popup">
+        <div class="slider-box">
+            <img src="gif2.gif" class="popup-gif" style="max-width: 150px; margin-bottom: 10px;">
+            <span id="emoji-display">Naah😑</span>
+            <div id="label-display">Naah😑</div>
+            <input type="range" id="emoji-slider" min="0" max="9" value="0">
+        </div>
+    </div>
+
+    <!-- 3. MY WORLD POPUP -->
+    <div id="popup">
+        <img src="gif1.gif" class="popup-gif">
+        <div class="sparkly-text">U Are My World 🥹✨</div>
+        <button onclick="startGallery()" style="background-color: #ad1457; margin-bottom: 10px;">Glimpse of my world❤️</button>
+        <button onclick="hidePopup()" style="background: none; box-shadow: none; text-decoration: underline; font-size: 0.8rem; color: white;">Close</button>
+    </div>
+
+    <!-- 4. GALLERY OVERLAY -->
+    <div id="gallery-overlay">
+        <img src="photo1.jpg" class="gallery-photo" id="p1">
+        <img src="photo2.jpg" class="gallery-photo" id="p2">
+        <img src="photo3.jpg" class="gallery-photo" id="p3">
+        <img src="photo4.jpg" class="gallery-photo" id="p4">
+        <img src="photo5.jpg" class="gallery-photo" id="p5">
+        
+        <div id="scratch-container">
+            <img src="gif4.gif" class="revealed-gif" alt="Secret Gift">
+            <canvas id="scratch-canvas" width="280" height="280"></canvas>
+        </div>
+
+        <div id="locker-container">
+            <p style="color: var(--accent); font-weight: bold; margin-bottom: 5px;">Enter Secret Code</p>
+            <div class="pin-display" id="pin-dots"></div>
+            <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 5px;">
+                <button onclick="showHint()" style="background: none; box-shadow: none; font-size: 1.5rem; padding: 0; cursor: pointer;">💡</button>
+                <span style="color: #666; font-size: 0.8rem; font-family: sans-serif;">hint</span>
+            </div>
+            <div class="numpad">
+                <button onclick="press(1)">1</button><button onclick="press(2)">2</button><button onclick="press(3)">3</button>
+                <button onclick="press(4)">4</button><button onclick="press(5)">5</button><button onclick="press(6)">6</button>
+                <button onclick="press(7)">7</button><button onclick="press(8)">8</button><button onclick="press(9)">9</button>
+                <button style="background: #ccc" onclick="clearPin()">C</button><button onclick="press(0)">0</button>
+            </div>
+        </div>
+
+        <button id="nextBtn" onclick="nextPhoto()" style="margin-top: 20px;">Next Photo →</button>
+    </div>
+
+    <!-- 5. LOVE PNG POPUP (Triggers on correct password) -->
+    <div id="love-overlay" onclick="closeLoveOverlay()">
+        <img src="love.png" class="love-image" alt="Love">
+        <div class="sparkly-text" style="color: var(--accent); font-size: 1.5rem;">❤️ My Whole Heart ❤️</div>
+        <p style="color: #ad1457; font-size: 0.8rem;">Tap to close</p>
+    </div>
+
+    <!-- 6. HINT OVERLAY -->
+    <div id="hint-overlay" onclick="this.style.display='none'">
+        <div class="sparkly-text" style="font-size: 1.4rem;">The day am most grateful for💕</div>
+        <p>(Tap to close)</p>
+    </div>
+
+    <!-- 7. MAIN CONTENT -->
+    <div class="scroll-wrapper" id="scrollContainer">
+        <div class="roller"></div>
+        <div class="scroll-paper"><div class="scroll-text">I Love You So Much ❤️😘 get well soon honey🥰 🤗 </div></div>
+        <div class="roller"></div>
+    </div>
+
+    <div class="controls" id="mainControls">
+        <button onclick="openScroll()" id="mainBtn">✨ Open Scroll ✨</button>
+        <button onclick="showPopup()" style="background-color: #ec407a;">🌍 My World</button>
+    </div>
+
+    <script>
+        const music = document.getElementById('bgMusic');
+        const scroll = document.getElementById('scrollContainer');
+        const moods = [
+            { e: "😑", l: "Naah😑" }, { e: "😒", l: "it's fine😒" }, { e: "🙄", l: "it's okay🙄" },
+            { e: "🥱", l: "theek hai🥱" }, { e: "😊", l: "it's nice😊" }, { e: "😇", l: "mast😇" },
+            { e: "🥰", l: "liked it🥰" }, { e: "🥹", l: "loved it🥹" }, { e: "🫠", l: "haaye🫠" },
+            { e: "😘", l: "mwuah😘💋" }
+        ];
+
+        // --- GAME ---
+        let score = 0;
+        function spawnHeart() {
+            const h = document.createElement('div');
+            h.className = 'heart'; h.innerHTML = '❤️';
+            h.style.left = Math.random() * 80 + 10 + 'vw'; h.style.top = Math.random() * 80 + 10 + 'vh';
+            h.onclick = () => {
+                score++; document.getElementById('score-board').innerText = `Hearts: ${score}`;
+                h.remove(); if(score >= 5) { 
+                    document.getElementById('game-container').style.display='none'; 
+                    document.getElementById('slider-popup').style.display='flex';
+                } else spawnHeart();
+            };
+            document.getElementById('game-container').appendChild(h);
+        }
+        spawnHeart();
+
+        document.getElementById('emoji-slider').oninput = function() {
+            const v = moods[this.value];
+            document.getElementById('emoji-display').innerText = v.e;
+            document.getElementById('label-display').innerText = v.l;
+            if(this.value == 9) setTimeout(() => {
+                document.getElementById('slider-popup').style.display='none';
+                scroll.style.display='flex';
+                document.getElementById('mainControls').style.display='flex';
+                music.play();
+            }, 500);
+        };
+
+        // --- GALLERY LOGIC ---
+        let currentPhoto = 1;
+        function startGallery() {
+            document.getElementById('popup').style.display = 'none';
+            document.getElementById('gallery-overlay').style.display = 'flex';
+            showPhoto(1);
+        }
+
+        function showPhoto(n) {
+            document.querySelectorAll('.gallery-photo').forEach(p => p.style.display = 'none');
+            document.getElementById('p' + n).style.display = 'block';
+        }
+
+        function nextPhoto() {
+            if(currentPhoto < 5) {
+                currentPhoto++;
+                showPhoto(currentPhoto);
+            } else {
+                document.getElementById('p5').style.display = 'none';
+                document.getElementById('nextBtn').style.display = 'none';
+                document.getElementById('scratch-container').style.display = 'block';
+                initScratch();
+            }
+        }
+
+        // --- SCRATCH LOGIC ---
+        function initScratch() {
+            const canvas = document.getElementById('scratch-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#888';
+            ctx.fillRect(0, 0, 280, 280);
+            
+            let isDrawing = false;
+            function scratch(e) {
+                if(!isDrawing) return;
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+                const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.beginPath(); ctx.arc(x, y, 30, 0, Math.PI * 2); ctx.fill();
+                
+                const data = ctx.getImageData(0, 0, 280, 280).data;
+                let count = 0;
+                for (let i = 3; i < data.length; i += 4) if (data[i] === 0) count++;
+                if (count > (280 * 280) * 0.5) {
+                    canvas.style.display = 'none';
+                    document.querySelector('.revealed-gif').style.opacity = "0.3";
+                    document.getElementById('locker-container').style.display = 'flex';
+                }
+            }
+            canvas.addEventListener('mousedown', () => isDrawing = true);
+            canvas.addEventListener('mouseup', () => isDrawing = false);
+            canvas.addEventListener('mousemove', scratch);
+            canvas.addEventListener('touchstart', () => isDrawing = true);
+            canvas.addEventListener('touchend', () => isDrawing = false);
+            canvas.addEventListener('touchmove', scratch);
+        }
+
+        // --- LOCKER & LOVE OVERLAY ---
+        let currentPin = "";
+        function press(n) {
+            if(currentPin.length < 4) {
+                currentPin += n;
+                document.getElementById('pin-dots').innerText = "*".repeat(currentPin.length);
+                if(currentPin === "1710") {
+                    document.getElementById('love-overlay').style.display = 'flex';
+                } else if(currentPin.length === 4) {
+                    setTimeout(() => { currentPin = ""; document.getElementById('pin-dots').innerText = ""; }, 500);
+                }
+            }
+        }
+        function closeLoveOverlay() {
+            document.getElementById('love-overlay').style.display = 'none';
+            document.getElementById('gallery-overlay').style.display = 'none';
+        }
+
+        function clearPin() { currentPin = ""; document.getElementById('pin-dots').innerText = ""; }
+        function showHint() { document.getElementById('hint-overlay').style.display = 'flex'; }
+
+        // --- ORIGINALS ---
+        function openScroll() {
+            if (!scroll.classList.contains('open')) { scroll.classList.add('open'); document.getElementById('mainBtn').innerText = "Close Scroll"; }
+            else { scroll.classList.remove('open'); document.getElementById('mainBtn').innerText = "Open Scroll"; }
+        }
+        function showPopup() { document.getElementById('popup').style.display = 'flex'; }
+        function hidePopup() { document.getElementById('popup').style.display = 'none'; }
+    </script>
+</body>
+</html>
