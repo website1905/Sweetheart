@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A Special Message for You</title>
+    <style>
+        :root {
+            --parchment: #fcf5e5;
+            --wood: #5d4037;
+            --accent: #d81b60;
+            --sparkle: #fff59d;
+        }
+
+        body {
+            background-color: #fce4ec;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            perspective: 1000px;
+            font-family: 'Georgia', serif;
+            overflow: hidden; /* Prevents accidental scrolling during animation */
+            touch-action: manipulation;
+        }
+
+        /* The Scroll Container - Scaled for Mobile */
+        .scroll-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px; /* Shorter for mobile */
+            width: 95vw;    /* Fits almost any screen width */
+            max-width: 600px;
+        }
+
+        .scroll-paper {
+            width: 0px;
+            height: 180px; /* Adjusted height */
+            background-color: var(--parchment);
+            background-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.02) 0%, transparent 100%);
+            border-top: 2px solid #e0d8c3;
+            border-bottom: 2px solid #e0d8c3;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: width 1.2s cubic-bezier(0.445, 0.05, 0.55, 0.95);
+            z-index: 1;
+        }
+
+        .scroll-text {
+            white-space: nowrap;
+            font-size: 1.2rem; /* Smaller font for mobile */
+            color: var(--accent);
+            font-weight: bold;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.6s ease;
+            transition-delay: 0.8s;
+        }
+
+        /* Adjust font size for larger screens */
+        @media (min-width: 600px) {
+            .scroll-text { font-size: 2rem; }
+            .scroll-paper { height: 250px; }
+            .scroll-wrapper { height: 300px; }
+        }
+
+        .roller {
+            width: 30px; /* Thinner rollers for mobile */
+            height: 220px;
+            background: linear-gradient(to right, #3e2723, var(--wood), #3e2723);
+            border-radius: 8px;
+            box-shadow: 2px 5px 10px rgba(0,0,0,0.3);
+            z-index: 2;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .roller::before, .roller::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 12px;
+            background: #3e2723;
+            left: -5px;
+            border-radius: 4px;
+        }
+        .roller::before { top: -8px; }
+        .roller::after { bottom: -8px; }
+
+        .scroll-wrapper.open .scroll-paper { 
+            width: 80vw; 
+            max-width: 500px;
+        }
+        .scroll-wrapper.open .scroll-text { opacity: 1; transform: scale(1); }
+
+        /* Buttons Container - Stacked for Mobile */
+        .controls {
+            margin-top: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 80%;
+            max-width: 300px;
+        }
+
+        button {
+            padding: 15px 25px;
+            font-size: 1rem;
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(216, 27, 96, 0.3);
+            transition: all 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        /* Pop-up Overlay */
+        #popup {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 10;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            backdrop-filter: blur(8px);
+        }
+
+        .popup-content {
+            text-align: center;
+            width: 90%;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .sparkly-text {
+            font-size: 1.8rem;
+            color: white;
+            text-shadow: 0 0 10px var(--sparkle), 0 0 20px var(--accent);
+            animation: glow 1.5s ease-in-out infinite alternate;
+            margin-top: 20px;
+            line-height: 1.4;
+        }
+
+        .popup-gif {
+            width: 80%;
+            max-width: 250px;
+            border-radius: 20px;
+            border: 4px solid white;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 10px var(--sparkle), 0 0 20px var(--accent); }
+            to { text-shadow: 0 0 20px var(--sparkle), 0 0 40px var(--accent), 0 0 20px #fff; }
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="bgMusic" loop>
+        <source src="song.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="scroll-wrapper" id="scrollContainer">
+        <div class="roller"></div>
+        <div class="scroll-paper">
+            <div class="scroll-text">I Love You So Much ❤️😘</div>
+        </div>
+        <div class="roller"></div>
+    </div>
+
+    <div class="controls">
+        <button onclick="openScroll()" id="mainBtn">✨ Open Scroll ✨</button>
+        <button onclick="showPopup()" style="background-color: #ec407a;">🌍 My World</button>
+    </div>
+
+    <div id="popup" onclick="hidePopup()">
+        <div class="popup-content">
+            <img src="gif1.gif" class="popup-gif" alt="Cute Gif">
+            <div class="sparkly-text">U Are My World 🥹✨</div>
+            <p style="color: #bbb; font-size: 0.9rem; margin-top: 15px;">Tap anywhere to close</p>
+        </div>
+    </div>
+
+    <script>
+        const music = document.getElementById('bgMusic');
+        const scroll = document.getElementById('scrollContainer');
+        const mainBtn = document.getElementById('mainBtn');
+
+        function openScroll() {
+            // Play music
+            music.play().catch(e => console.log("Music ready after interaction"));
+
+            if (!scroll.classList.contains('open')) {
+                scroll.classList.add('open');
+                mainBtn.innerText = "Close Scroll";
+            } else {
+                scroll.classList.remove('open');
+                mainBtn.innerText = "Open Scroll";
+            }
+        }
+
+        function showPopup() {
+            document.getElementById('popup').style.display = 'flex';
+            music.play();
+        }
+
+        function hidePopup() {
+            document.getElementById('popup').style.display = 'none';
+        }
+    </script>
+
+</body>
+</html>
